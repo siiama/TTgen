@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.EntityFrameworkCore;
 using TTgen.Models;
 
 namespace TTgen.Services;
@@ -16,36 +12,33 @@ public class TeacherService
         _context = context;
     }
 
-    public void AddTeacher(string name)
+    public async Task<List<Teacher>> GetTeachersAsync()
     {
-        var teacher = new Teacher { Name = name };
+        return await _context.Teachers.ToListAsync();
+    }
+
+    public async Task AddTeacherAsync(Teacher teacher)
+    {
+        ArgumentNullException.ThrowIfNull(teacher);
         _context.Teachers.Add(teacher);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
     }
 
-    public void UpdateTeacher(int id, string newName)
+    public async Task UpdateTeacherAsync(int id, Teacher teacher)
     {
-        var teacher = _context.Teachers.Find(id);
-        if (teacher != null)
+        if (_context.Entry(teacher).State is EntityState.Modified or EntityState.Unchanged)
         {
-            teacher.Name = newName;
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
+
+        throw new ArgumentException("Entity must be in modified state or unchanged state to be updated.");
     }
 
-    public void SoftDeleteTeacher(int id)
+    public async Task SoftDeleteTeacherAsync(int id)
     {
-        var teacher = _context.Teachers.Find(id);
-        if (teacher != null)
-        {
-            teacher.IsActive = false;
-            _context.SaveChanges();
-        }
-    }
-
-    public List<Teacher> GetTeachers()
-    {
-        return _context.Teachers.ToList();
+        var teacher = await _context.Teachers.FirstOrDefaultAsync(x => x.Id == id);
+        teacher.IsActive = false;
+        await _context.SaveChangesAsync();
     }
 }
 
